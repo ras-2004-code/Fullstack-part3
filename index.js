@@ -1,5 +1,7 @@
 const morgan=require('morgan')
 const express=require('express')
+const cors=require('cors')
+
 const app=express()
 
 morgan.token('postlog',(request,response)=>{
@@ -7,7 +9,9 @@ morgan.token('postlog',(request,response)=>{
     else return ''
 })
 
+
 app.use(express.json())
+app.use(cors())
 
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :postlog'))
 
@@ -117,7 +121,7 @@ const unknownEndPoint=(request,response)=>{
 
 app.use(unknownEndPoint)
 
-const PORT=3001
+const PORT=process.env.PORT || 3001
 app.listen(PORT,()=>{
     console.log(`Server running on port ${PORT}`)
 })
