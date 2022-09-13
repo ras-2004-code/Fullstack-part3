@@ -1,6 +1,9 @@
 const morgan=require('morgan')
+require('dotenv').config()
 const express=require('express')
 const cors=require('cors')
+const Person=require('./models/person')
+const { request } = require('express')
 
 const app=express()
 
@@ -19,102 +22,78 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms :p
 
 
 
-
-const persons=[
-    { 
-      "id": 1,
-      "name": "Arto Hellas", 
-      "number": "040-123456"
-    },
-    { 
-      "id": 2,
-      "name": "Ada Lovelace", 
-      "number": "39-44-5323523"
-    },
-    { 
-      "id": 3,
-      "name": "Dan Abramov", 
-      "number": "12-43-234345"
-    },
-    { 
-      "id": 4,
-      "name": "Mary Poppendieck", 
-      "number": "39-23-6423122"
-    }
-]
-
 app.get('/api/persons',(request,response)=>{
-    response.json(persons)
+    Person.find({}).then(persons=>{
+        response.json(persons)
+    }).catch(err=>{
+        console.log('Error ',err.message)
+        response.status(400).json({error:err.message})
+    })
 })
 
 app.get('/info',(request,response)=>{
-    response.send(`<div>Phonebook has info for ${persons.length} people <br/>
-    ${new Date()}</div>`)
+    Person.countDocuments({}).then(count=>{
+        response.send(`<div>Phonebook has info for ${count} people <br/>
+        ${new Date()}</div>`)
+    }).catch(err=>{
+        response.status(400).json({error:err.message})
+    })
 })
 
 app.get('/api/persons/:id',(request,response)=>{
-    const id=Number(request.params.id)
-    const person=persons.find(n=>n.id===id)
-    if(!person){
-        return response.status(404).json({
-            error:`no data for id ${id}`
-        })
-    }
-    else{
-        response.json(person)
-    }
+    Person.findById(request.params.id).then(person=>{
+        if(person)response.json(person)
+        else response.status(404).end()
+    }).catch(err=>{
+        response.status(400).json({error:err.message})
+    })
 })
 
 app.delete('/api/persons/:id',(request,response)=>{
-    const id=Number(request.params.id)
-    let index=-1;
-    const person=persons.find((n,i)=>{
-        if(n.id===id){
-            index=i
-            return true
+    Person.findByIdAndDelete(request.params.id).then(delPerson=>{
+        if(delPerson){
+            response.status(204).json(delPerson)
         }
-        return false
+        else response.status(404).end()
     })
-    if(!person){
-        return response.status(404).json({
-            error:`no data for id ${id}`
-        })
-    }
-    else{
-        response.status(204).json(person)
-        persons.splice(index,1)
-    }
 })
-
-const generateId=()=>{
-    let id=-1;
-    do{
-        id=Math.floor(Math.random()*Number.MAX_SAFE_INTEGER)
-    }while(persons.find(p=>p.id===id))
-    return id
-}
 
 app.post('/api/persons',(request,response)=>{
     const body=request.body
     if(!body.name || !body.number){
         response.status(400).json({
-            error:'A person needs a name and a number'
+            error:'A person needs a name and a number',
         })
     }
-    else if(persons.find(p=>p.name.toLowerCase()===body.name.toLowerCase())){
-        response.status(400).json({
-            error: "name must be unique"
-        })
-    }
-    else{
-        const person={
-            id:generateId(),
-            name:body.name,
-            number:body.number
+    Person.findOne({name_lower:body.name.toLowerCase()}).then(person=>{
+        if(person)
+            response.status(400).json({
+                error:`An entry with name ${body.name} already exists id: ${person._id}`,
+                id:person._id.toString()
+            })
+        else{
+            const newPerson=new Person({
+                name:body.name,
+                name_lower:body.name.toLowerCase(),
+                number:body.number
+            })
+            return newPerson.save()
         }
-        persons.push(person)
-        response.status(201).json(person)
+    }).then(savedPerson=>{
+        if(savedPerson) response.status(201).json(savedPerson)
+    }).catch(err=>{
+        response.status(400).json({error:err.message+" hello"})
+    })
+})
+
+app.put('api/persons/:id',(request,response)=>{
+    const body=request.body
+    if(!request.name && !request.number){
+        return response.status(400).json({error:"Need a new name or number."})
     }
+    Person.findById(request.params.id).then(person=>{
+
+    })
 })
 
 const unknownEndPoint=(request,response)=>{
