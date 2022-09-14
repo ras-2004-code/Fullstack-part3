@@ -13,52 +13,43 @@ morgan.token('postlog',(request,response)=>{
 })
 
 
-app.use(express.json())
 app.use(express.static('build'))
+app.use(express.json())
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :postlog'))
 
 app.use(cors())
 
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms :postlog'))
 
-
-
-app.get('/api/persons',(request,response)=>{
+app.get('/api/persons',(request,response,next)=>{
     Person.find({}).then(persons=>{
         response.json(persons)
-    }).catch(err=>{
-        console.log('Error ',err.message)
-        response.status(500).json({error:err.message})
-    })
+    }).catch(err=>next(err))
 })
 
-app.get('/info',(request,response)=>{
+app.get('/info',(request,response,next)=>{
     Person.countDocuments({}).then(count=>{
         response.send(`<div>Phonebook has info for ${count} people <br/>
         ${new Date()}</div>`)
-    }).catch(err=>{
-        response.status(500).json({error:err.message})
-    })
+    }).catch(err=>next(err))
 })
 
-app.get('/api/persons/:id',(request,response)=>{
+app.get('/api/persons/:id',(request,response,next)=>{
     Person.findById(request.params.id).then(person=>{
         if(person)response.json(person)
         else response.status(404).end()
-    }).catch(err=>{
-        response.status(500).json({error:err.message})
-    })
+    }).catch(err=>next(err))
 })
 
-app.delete('/api/persons/:id',(request,response)=>{
+app.delete('/api/persons/:id',(request,response,next)=>{
     Person.findByIdAndDelete(request.params.id).then(delPerson=>{
         if(delPerson){
             response.status(204).json(delPerson)
         }
         else response.status(404).end()
-    })
+    }).catch(err=>next(err))
 })
 
-app.post('/api/persons',(request,response)=>{
+app.post('/api/persons',(request,response,next)=>{
     const body=request.body
     if(!body.name || !body.number){
         response.status(400).json({
@@ -80,13 +71,11 @@ app.post('/api/persons',(request,response)=>{
             return newPerson.save()
         }
     }).then(savedPerson=>{
-        if(savedPerson) response.status(201).json(savedPerson)
-    }).catch(err=>{
-        response.status(500).json({error:err.message+" hello"})
-    })
+        if(savedPerson) response.json(savedPerson)
+    }).catch(err=>next(err))
 })
 
-app.put('/api/persons/:id',(request,response)=>{
+app.put('/api/persons/:id',(request,response,next)=>{
     const body=request.body
     if(!body.name && !body.number){
         return response.status(400).json({error:"Need a new name or number."})
@@ -97,10 +86,8 @@ app.put('/api/persons/:id',(request,response)=>{
         person.number=body.number
         return person.save()
     }).then(saved=>{
-        response.status(202).json(saved)
-    }).catch(err=>{
-        response.status(500).json({error:err.message})
-    })
+        response.json(saved)
+    }).catch(err=>next(err))
 })
 
 const unknownEndPoint=(request,response)=>{
@@ -108,6 +95,18 @@ const unknownEndPoint=(request,response)=>{
 }
 
 app.use(unknownEndPoint)
+
+
+const errorHandler=(error,request,response,next)=>{
+    console.error(error.message)
+
+    if(error.name==='CastError')
+    return response.status(400).send({error:'Malformatted id'})
+    else response.status(500).end()
+    next(error)
+}
+
+app.use(errorHandler)
 
 const PORT=process.env.PORT || 3001
 app.listen(PORT,()=>{
