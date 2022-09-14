@@ -86,13 +86,20 @@ app.post('/api/persons',(request,response)=>{
     })
 })
 
-app.put('api/persons/:id',(request,response)=>{
+app.put('/api/persons/:id',(request,response)=>{
     const body=request.body
-    if(!request.name && !request.number){
+    if(!body.name && !body.number){
         return response.status(400).json({error:"Need a new name or number."})
     }
     Person.findById(request.params.id).then(person=>{
-
+        person.name=body.name
+        person.name_lower=body.name.toLowerCase()
+        person.number=body.number
+        return person.save()
+    }).then(saved=>{
+        response.status(202).json(saved)
+    }).catch(err=>{
+        response.status(400).json({error:err.message})
     })
 })
 
