@@ -27,7 +27,7 @@ app.get('/api/persons',(request,response)=>{
         response.json(persons)
     }).catch(err=>{
         console.log('Error ',err.message)
-        response.status(400).json({error:err.message})
+        response.status(500).json({error:err.message})
     })
 })
 
@@ -36,7 +36,7 @@ app.get('/info',(request,response)=>{
         response.send(`<div>Phonebook has info for ${count} people <br/>
         ${new Date()}</div>`)
     }).catch(err=>{
-        response.status(400).json({error:err.message})
+        response.status(500).json({error:err.message})
     })
 })
 
@@ -45,7 +45,7 @@ app.get('/api/persons/:id',(request,response)=>{
         if(person)response.json(person)
         else response.status(404).end()
     }).catch(err=>{
-        response.status(400).json({error:err.message})
+        response.status(500).json({error:err.message})
     })
 })
 
@@ -82,7 +82,7 @@ app.post('/api/persons',(request,response)=>{
     }).then(savedPerson=>{
         if(savedPerson) response.status(201).json(savedPerson)
     }).catch(err=>{
-        response.status(400).json({error:err.message+" hello"})
+        response.status(500).json({error:err.message+" hello"})
     })
 })
 
@@ -99,7 +99,7 @@ app.put('/api/persons/:id',(request,response)=>{
     }).then(saved=>{
         response.status(202).json(saved)
     }).catch(err=>{
-        response.status(400).json({error:err.message})
+        response.status(500).json({error:err.message})
     })
 })
 
