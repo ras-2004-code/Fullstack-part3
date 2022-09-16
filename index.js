@@ -51,18 +51,23 @@ app.delete('/api/persons/:id',(request,response,next)=>{
 
 app.post('/api/persons',(request,response,next)=>{
     const body=request.body
-    if(!body.name || !body.number){
+    if(!body.name){
         response.status(400).json({
-            error:'A person needs a name and a number',
+            error:'A person needs a name'
         })
     }
-    Person.findOne({name_lower:body.name.toLowerCase()}).then(person=>{
+    Person.findOne({name:{$regex : new RegExp('^'+body.name+'$','i')}}).then(person=>{
         if(person)
             response.status(400).json({
                 error:`An entry with name ${body.name} already exists id: ${person._id}`,
                 id:person._id.toString()
             })
         else{
+            if(!body.number){
+                response.status(400).json({
+                    error:'A new person needs a name and a number'
+                })
+            }
             const newPerson=new Person({
                 name:body.name,
                 name_lower:body.name.toLowerCase(),
@@ -76,16 +81,14 @@ app.post('/api/persons',(request,response,next)=>{
 })
 
 app.put('/api/persons/:id',(request,response,next)=>{
-    const body=request.body
-    if(!body.name && !body.number){
+    let {name,number}=request.body
+    if(!name && !number){
         return response.status(400).json({error:"Need a new name or number."})
     }
-    Person.findById(request.params.id).then(person=>{
-        person.name=body.name
-        person.number=body.number
-        return person.save()
-    }).then(saved=>{
-        response.json(saved)
+    if(!name)name=undefined
+    if(!number)number=undefined
+    Person.findByIdAndUpdate(request.params.id,{name,number},{new:true,runValidators:true,context:'query'}).then(updatedPerson=>{
+        response.json(updatedPerson)
     }).catch(err=>next(err))
 })
 

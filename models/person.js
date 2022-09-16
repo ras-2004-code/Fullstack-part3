@@ -12,7 +12,6 @@ const personSchema=mongoose.Schema({
         minLength:3,
         required:true
     },
-    name_lower:String,
     number:{
         type:String,
         minLength:8,
@@ -30,10 +29,6 @@ personSchema.set('toJSON',{
         delete returnedObject.__v
         delete returnedObject.name_lower
     }
-})
-
-personSchema.post('save',(savedPerson)=>{
-    savedPerson.name_lower=savedPerson.name.toLowerCase()
 })
 
 module.exports=mongoose.model('Person',personSchema)
