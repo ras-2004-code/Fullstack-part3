@@ -82,7 +82,6 @@ app.put('/api/persons/:id',(request,response,next)=>{
     }
     Person.findById(request.params.id).then(person=>{
         person.name=body.name
-        person.name_lower=body.name.toLowerCase()
         person.number=body.number
         return person.save()
     }).then(saved=>{
@@ -91,7 +90,7 @@ app.put('/api/persons/:id',(request,response,next)=>{
 })
 
 const unknownEndPoint=(request,response)=>{
-    response.status(404).send({error:'Unknown endpoint'})
+    response.status(404).json({error:'Unknown endpoint'})
 }
 
 app.use(unknownEndPoint)
@@ -101,8 +100,9 @@ const errorHandler=(error,request,response,next)=>{
     console.error(error.message)
 
     if(error.name==='CastError')
-    return response.status(400).send({error:'Malformatted id'})
-    else response.status(500).end()
+    return response.status(400).json({error:'Malformatted id'})
+    else if(error.name==='ValidationError')
+    return response.status(400).json({error:error.message})
     next(error)
 }
 

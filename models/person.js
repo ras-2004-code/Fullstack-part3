@@ -7,9 +7,20 @@ mongoose.connect(process.env.MONGODB_URI).catch(err=>{
 })
 
 const personSchema=mongoose.Schema({
-    name:String,
+    name:{
+        type:String,
+        minLength:3,
+        required:true
+    },
     name_lower:String,
-    number:String
+    number:{
+        type:String,
+        minLength:8,
+        validate:{
+            validator:num=> /^\d+$/.test(num) || /^\d{2,3}-\d+$/.test(num),
+            message:props=>`${props.value} is not a valid number.`
+        }
+    }
 })
 
 personSchema.set('toJSON',{
@@ -19,6 +30,10 @@ personSchema.set('toJSON',{
         delete returnedObject.__v
         delete returnedObject.name_lower
     }
+})
+
+personSchema.post('save',(savedPerson)=>{
+    savedPerson.name_lower=savedPerson.name.toLowerCase()
 })
 
 module.exports=mongoose.model('Person',personSchema)
